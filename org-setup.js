@@ -191,6 +191,42 @@ client.once('ready', async () => {
     }
   }
 
+  // ── 3b. Restrict legacy project categories to VidyaSetu role ──
+  console.log('\n━━━ Locking Project-Specific Categories ━━━');
+  const projectCategories = ['🏆 GSSOC 2026', '📐 PROJECT'];
+  const projectRoleForLock = roles['🌉 VidyaSetu'];
+  if (projectRoleForLock) {
+    for (const catName of projectCategories) {
+      const cat = guild.channels.cache.find(
+        c => c.name === catName && c.type === ChannelType.GuildCategory
+      );
+      if (cat) {
+        try {
+          await cat.permissionOverwrites.set([
+            {
+              id: guild.roles.everyone.id,
+              deny: [PermissionFlagsBits.ViewChannel],
+            },
+            {
+              id: projectRoleForLock.id,
+              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+            },
+          ]);
+          console.log(`  🔒 Locked category to VidyaSetu role: ${catName}`);
+
+          // Sync child channels
+          const children = guild.channels.cache.filter(c => c.parentId === cat.id);
+          for (const child of children.values()) {
+            await child.lockPermissions();
+            console.log(`    🔗 Synced permissions for channel: #${child.name}`);
+          }
+        } catch (err) {
+          console.log(`  ⚠️  Failed to lock category ${catName}: ${err.message}`);
+        }
+      }
+    }
+  }
+
   // ── 4. Send Onboarding Pick-Your-Project Embed ──
   console.log('\n━━━ Sending Onboarding Project Picker Embed ━━━');
   if (pickProjectChannel) {
