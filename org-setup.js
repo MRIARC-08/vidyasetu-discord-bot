@@ -255,6 +255,158 @@ client.once('ready', async () => {
     }
   }
 
+  // ── 5. Add Emojis to Channels ──
+  console.log('\n━━━ Adding Emojis to Channels ━━━');
+  const EMOJI_MAPPING = {
+    'welcome': '👋welcome',
+    'rules': '📜rules',
+    'pick-your-project': '🎭pick-your-project',
+    'announcements': '📢announcements',
+    'general': '💬general',
+    'introductions': '🤝introductions',
+    'ideas': '💡ideas',
+    'showcase': '✨showcase',
+    'off-topic': '🎳off-topic',
+    'getting-started': '🏁getting-started',
+    'documentation': '📖documentation',
+    'tools-and-setup': '🛠️tools-and-setup',
+    'vidyasetu-general': '💬vidyasetu-general',
+    'vidyasetu-dev': '💻vidyasetu-dev',
+    'vidyasetu-issues': '📋vidyasetu-issues',
+    'vidyasetu-prs': '🔀vidyasetu-prs',
+    'Pair Programming': '💻 Pair Programming',
+    'Team Meeting': '📅 Team Meeting',
+    'Hangout': '☕ Hangout'
+  };
+
+  for (const channel of guild.channels.cache.values()) {
+    if (channel.type === ChannelType.GuildCategory) continue;
+    const baseName = channel.name.replace(/[^a-zA-Z0-9- ]/g, '').trim().toLowerCase();
+    let newName = EMOJI_MAPPING[channel.name] || EMOJI_MAPPING[baseName];
+    if (newName && channel.name !== newName) {
+      try {
+        await channel.setName(newName);
+        console.log(`  🏷️  Renamed: #${channel.name} -> #${newName}`);
+      } catch (err) {
+        console.log(`  ⚠️  Failed to rename #${channel.name}: ${err.message}`);
+      }
+    }
+  }
+
+  // ── 6. Create Admin Category & Bot Documentation ──
+  console.log('\n━━━ Creating Admin Category & Bot Documentation ━━━');
+  const adminRole = guild.roles.cache.find(r => r.name === '🛡️ Admin');
+  
+  let adminCategory = guild.channels.cache.find(
+    c => c.name === '🛡️ ADMIN' && c.type === ChannelType.GuildCategory
+  );
+  if (!adminCategory) {
+    const overwrites = [
+      {
+        id: guild.roles.everyone.id,
+        deny: [PermissionFlagsBits.ViewChannel],
+      }
+    ];
+    if (adminRole) {
+      overwrites.push({
+        id: adminRole.id,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+      });
+    }
+    adminCategory = await guild.channels.create({
+      name: '🛡️ ADMIN',
+      type: ChannelType.GuildCategory,
+      permissionOverwrites: overwrites,
+    });
+    console.log('  🔒 Created private category: 🛡️ ADMIN');
+  } else if (adminRole) {
+    await adminCategory.permissionOverwrites.set([
+      {
+        id: guild.roles.everyone.id,
+        deny: [PermissionFlagsBits.ViewChannel],
+      },
+      {
+        id: adminRole.id,
+        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+      },
+    ]);
+  }
+
+  let docChannel = guild.channels.cache.find(
+    c => c.name === 'bot-documentation' || c.name === '🤖bot-documentation'
+  );
+  if (!docChannel) {
+    docChannel = await guild.channels.create({
+      name: 'bot-documentation',
+      type: ChannelType.GuildText,
+      parent: adminCategory.id,
+      topic: 'Documentation for the VidyaSetu Discord bot configuration and architecture.',
+    });
+    await docChannel.setName('🤖bot-documentation');
+    console.log('  ✅ Created channel: #bot-documentation');
+  } else {
+    // Ensure parent is correct
+    await docChannel.setParent(adminCategory.id);
+  }
+
+  if (docChannel) {
+    try {
+      // Clear old messages first
+      const messages = await docChannel.messages.fetch({ limit: 50 });
+      for (const msg of messages.values()) {
+        await msg.delete();
+      }
+
+      console.log('  📝 Sending bot documentation embeds...');
+
+      // Embed 1: Operations Guide
+      const opsEmbed = new EmbedBuilder()
+        .setTitle('🤖 Bot Operations & Deploy Guide')
+        .setDescription('High-level overview of the bot lifecycle and hosting on Render.')
+        .addFields(
+          { name: '🌐 Hosting Platform', value: 'Hosted on **Render** (as a Web Service) to ensure 24/7 availability.' },
+          { name: '🔌 Health Check Server', value: 'The bot starts a local HTTP server on `process.env.PORT` (defaults to 10000 on Render). Pinging `/health` returns status metadata to keep the service awake.' },
+          { name: '🔑 Environment Variables', value: [
+            '`DISCORD_TOKEN` — Bot client auth credential.',
+            '`GUILD_ID` — Target Discord guild (used for setup scripts).',
+            '`GITHUB_TOKEN` — Personal Access Token to bypass GitHub API rate limits.'
+          ].join('\n') },
+          { name: '🚀 CI/CD Pipeline', value: 'Every git push to `master` branch on GitHub triggers an automatic redeploy on Render.' }
+        )
+        .setColor('#5865F2')
+        .setTimestamp();
+
+      // Embed 2: Architecture Guide
+      const archEmbed = new EmbedBuilder()
+        .setTitle('🏗️ Modular Bot Command Architecture')
+        .setDescription('Overview of the proposed directory design for modular commands.')
+        .addFields(
+          { name: '📂 Directory Map', value: 'Commands are parsed dynamically from category folders (e.g. `/commands/general/`, `/commands/vidyasetu/`). Events reside in `/events/`.' },
+          { name: '🔒 Project Role Gate', value: 'Command files can export a `projectRole` key (e.g. `projectRole: "🌉 VidyaSetu"`). The event handler blocks execution and replies with a prompt if the member lacks the role.' },
+          { name: '📈 Adding New Projects', value: 'Simply drop new commands in `/commands/new-project/` and they will load dynamically. Core connection loops remain untouched.' }
+        )
+        .setColor('#6C5CE7')
+        .setTimestamp();
+
+      // Embed 3: Server Permissions Map
+      const permissionsEmbed = new EmbedBuilder()
+        .setTitle('🛡️ Server Restructuring & Visibility Map')
+        .setDescription('How the category permissions are organized to keep project channels private.')
+        .addFields(
+          { name: '🌍 Global Categories', value: '`📢 INFORMATION`, `💬 COMMUNITY`, and `📚 RESOURCES` are visible to all members (role: `@everyone`).' },
+          { name: '🔒 Project Categories', value: '`📐 VIDYASETU`, `🏆 GSSOC 2026`, and `📐 PROJECT` deny view permission to `@everyone` and allow it only for the `🌉 VidyaSetu` project role.' },
+          { name: '🎭 Onboarding Flow', value: 'New members land on `#pick-your-project` and react with `🌉` to assign themselves the project role, immediately unlocking all project categories.' }
+        )
+        .setColor('#E91E63')
+        .setTimestamp();
+
+      await docChannel.send({ embeds: [opsEmbed, archEmbed, permissionsEmbed] });
+      console.log('  ✅ Documentation embeds sent successfully!');
+    } catch (err) {
+      console.error('  ❌ Failed to populate bot documentation:', err.message);
+    }
+  }
+
   console.log('\n🎉 Restructuring complete!');
   process.exit(0);
 });
