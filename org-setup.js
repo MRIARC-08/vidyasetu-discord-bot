@@ -95,6 +95,29 @@ client.once('ready', async () => {
     }
   }
 
+  // ── 2b. Clean up legacy global categories/channels ──
+  console.log('\n━━━ Cleaning Legacy Categories ━━━');
+  const legacyCategories = ['💻 DEVELOPMENT', '🔄 GITHUB'];
+  for (const catName of legacyCategories) {
+    const cat = guild.channels.cache.find(
+      c => c.name === catName && c.type === ChannelType.GuildCategory
+    );
+    if (cat) {
+      try {
+        // Delete all child channels first
+        const children = guild.channels.cache.filter(c => c.parentId === cat.id);
+        for (const child of children.values()) {
+          await child.delete('Removing legacy global channel');
+          console.log(`  🗑️  Deleted legacy channel: #${child.name}`);
+        }
+        await cat.delete('Removing legacy global category');
+        console.log(`  🗑️  Deleted legacy category: ${catName}`);
+      } catch (err) {
+        console.log(`  ⚠️  Failed to delete legacy category ${catName}: ${err.message}`);
+      }
+    }
+  }
+
   // ── 3. Create Private Project Categories & Channels ──
   console.log('\n━━━ Creating Private Project Categories ━━━');
   const projectConfigs = [
