@@ -174,9 +174,10 @@ client.once('ready', async () => {
 
     // Create channels
     for (const ch of proj.channels) {
-      const existing = guild.channels.cache.find(
-        c => c.name === ch.name && c.parentId === cat.id
-      );
+      const existing = guild.channels.cache.find(c => {
+        const baseName = c.name.replace(/[^a-zA-Z0-9-]/g, '').trim().toLowerCase();
+        return (c.name === ch.name || baseName === ch.name.toLowerCase()) && c.parentId === cat.id;
+      });
       if (!existing) {
         await guild.channels.create({
           name: ch.name,
