@@ -186,11 +186,12 @@ client.on(Events.MessageCreate, async (message) => {
         { name: '📋 Issue Commands', value: [
           '`!issues` — latest 10 open issues',
           '`!issues 20` — issues 11-20',
-          '`!issues 30` — issues 21-30',
           '`!issues #42` — view issue #42 in detail',
           '`!issues unassigned` — grab an unassigned issue',
           '`!issues assigned <user>` — issues by assignee',
           '`!issues bug` — filter by label',
+          '`!issues labels` — list all labels in the repository',
+          '`!issues search <query>` — search open issues',
           '`!issues all` — full summary with stats',
         ].join('\n') },
         { name: '🔀 PR Commands', value: [
@@ -439,6 +440,65 @@ client.on(Events.MessageCreate, async (message) => {
           .setColor('#6C5CE7')
           .setFooter({ text: 'Live from GitHub API' })
           .setTimestamp();
+
+        await loading.edit({ content: '', embeds: [embed] });
+        return;
+      }
+
+      // ── !issues labels → View all repository labels ──
+      if (subCommand === 'labels' || subCommand === 'tags') {
+        const res = await fetch(`${GITHUB_API}/labels`, { headers: HEADERS });
+        if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+        const labels = await res.json();
+
+        const labelLines = labels.map(l => {
+          const emoji = labelEmojis[l.name.toLowerCase()] || '🏷️';
+          return `${emoji} **${l.name}** — ${l.description || '*No description*'}\n   *Filter: \`!issues ${l.name}\`*`;
+        }).join('\n\n');
+
+        const embed = new EmbedBuilder()
+          .setTitle('🏷️ Repository Labels')
+          .setDescription(labelLines.slice(0, 4000))
+          .setColor('#FDCB6E')
+          .setFooter({ text: `VidyaSetu • Total ${labels.length} labels` });
+
+        await loading.edit({ content: '', embeds: [embed] });
+        return;
+      }
+
+      // ── !issues search <query> → Search open issues ──
+      if (subCommand === 'search' || subCommand === 'find') {
+        const query = args.slice(1).join(' ');
+        if (!query) {
+          await loading.edit('❌ Usage: `!issues search <query term>`');
+          return;
+        }
+
+        const searchUrl = `https://api.github.com/search/issues?q=repo:MRIARC-08/VidyaSetu+is:issue+is:open+${encodeURIComponent(query)}`;
+        const res = await fetch(searchUrl, { headers: HEADERS });
+        if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+        const searchResult = await res.json();
+        const foundIssues = searchResult.items || [];
+
+        if (foundIssues.length === 0) {
+          await loading.edit(`📭 No open issues matching "${query}" were found.`);
+          return;
+        }
+
+        const issueLines = foundIssues.slice(0, 10).map((issue, i) => {
+          const labels = issue.labels
+            .map(l => labelEmojis[l.name.toLowerCase()] || `\`${l.name}\``)
+            .join(' ');
+          const assignee = issue.assignee ? `👤 @${issue.assignee.login}` : '🟢 Unassigned';
+          const age = Math.floor((Date.now() - new Date(issue.created_at)) / (1000 * 60 * 60 * 24));
+          return `**${i + 1}.** [#${issue.number} ${issue.title}](${issue.html_url})\n   ${labels} │ ${assignee} │ ${age}d ago`;
+        });
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🔍 Search Results for "${query}"`)
+          .setDescription(issueLines.join('\n\n'))
+          .setColor('#74B9FF')
+          .setFooter({ text: `Showing top ${Math.min(10, foundIssues.length)} of ${foundIssues.length} results` });
 
         await loading.edit({ content: '', embeds: [embed] });
         return;
