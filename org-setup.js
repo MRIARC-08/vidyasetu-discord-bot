@@ -154,6 +154,15 @@ client.once('ready', async () => {
             id: projectRole.id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
           },
+          {
+            id: client.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.EmbedLinks,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+          },
         ],
       });
       console.log(`  📁 Created private category: ${proj.categoryName}`);
@@ -168,6 +177,15 @@ client.once('ready', async () => {
         {
           id: projectRole.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        },
+        {
+          id: client.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.EmbedLinks,
+            PermissionFlagsBits.ReadMessageHistory,
+          ],
         },
       ]);
     }
@@ -330,6 +348,15 @@ client.once('ready', async () => {
       {
         id: guild.roles.everyone.id,
         deny: [PermissionFlagsBits.ViewChannel],
+      },
+      {
+        id: client.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory,
+        ],
       }
     ];
     if (adminRole) {
@@ -344,17 +371,29 @@ client.once('ready', async () => {
       permissionOverwrites: overwrites,
     });
     console.log('  🔒 Created private category: 🛡️ ADMIN');
-  } else if (adminRole) {
-    await adminCategory.permissionOverwrites.set([
+  } else {
+    const overwrites = [
       {
         id: guild.roles.everyone.id,
         deny: [PermissionFlagsBits.ViewChannel],
       },
       {
+        id: client.user.id,
+        allow: [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+          PermissionFlagsBits.ReadMessageHistory,
+        ],
+      }
+    ];
+    if (adminRole) {
+      overwrites.push({
         id: adminRole.id,
         allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-      },
-    ]);
+      });
+    }
+    await adminCategory.permissionOverwrites.set(overwrites);
   }
 
   let docChannel = guild.channels.cache.find(

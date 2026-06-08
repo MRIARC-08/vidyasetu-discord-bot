@@ -174,6 +174,8 @@ client.on(Events.MessageCreate, async (message) => {
   const args = message.content.slice(1).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
+  console.log(`💬 Command received: !${command} ${args.join(' ')} (from ${message.author.tag} in #${message.channel.name})`);
+
   // ── !help ──
   if (command === 'help') {
     const helpEmbed = new EmbedBuilder()
