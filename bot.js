@@ -30,10 +30,7 @@ const client = new Client({
 // 🎨 REACTION ROLE MAPPING
 // ═══════════════════════════════════════════════════
 const REACTION_ROLES = {
-  '🎨': '🎨 Frontend',
-  '⚙️': '⚙️ Backend',
-  '📱': '📱 Mobile',
-  '📝': '📝 Docs',
+  '🌉': '🌉 VidyaSetu',
 };
 
 // ═══════════════════════════════════════════════════
@@ -73,7 +70,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
         `Hey ${member}! Welcome to **Vidyasetu Open Source Community**! 🎉\n\n` +
         `We're glad to have you here. Here's how to get started:\n\n` +
         `📜 Read the rules in <#${member.guild.channels.cache.find(c => c.name === 'rules')?.id || 'rules'}>\n` +
-        `🎭 Pick your roles in <#${member.guild.channels.cache.find(c => c.name === 'pick-your-role')?.id || 'pick-your-role'}>\n` +
+        `🎭 Pick your projects in <#${member.guild.channels.cache.find(c => c.name === 'pick-your-project')?.id || 'pick-your-project'}>\n` +
         `💬 Introduce yourself in <#${member.guild.channels.cache.find(c => c.name === 'introductions')?.id || 'introductions'}>\n` +
         `🚀 Check <#${member.guild.channels.cache.find(c => c.name === 'good-first-issues')?.id || 'good-first-issues'}> for beginner-friendly tasks\n\n` +
         `Happy contributing! 🌉`
@@ -118,8 +115,8 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     try { await reaction.fetch(); } catch { return; }
   }
 
-  // Only handle reactions in "pick-your-role" channel
-  if (reaction.message.channel.name !== 'pick-your-role') return;
+  // Only handle reactions in "pick-your-project" channel
+  if (reaction.message.channel.name !== 'pick-your-project') return;
 
   const roleName = REACTION_ROLES[reaction.emoji.name];
   if (!roleName) return;
@@ -148,7 +145,7 @@ client.on(Events.MessageReactionRemove, async (reaction, user) => {
     try { await reaction.fetch(); } catch { return; }
   }
 
-  if (reaction.message.channel.name !== 'pick-your-role') return;
+  if (reaction.message.channel.name !== 'pick-your-project') return;
 
   const roleName = REACTION_ROLES[reaction.emoji.name];
   if (!roleName) return;
