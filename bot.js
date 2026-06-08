@@ -346,6 +346,9 @@ client.on(Events.MessageCreate, async (message) => {
       'Accept': 'application/vnd.github.v3+json',
       'User-Agent': 'VidyaSetu-Discord-Bot',
     };
+    if (process.env.GITHUB_TOKEN) {
+      HEADERS['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
     const PER_PAGE = 10;
 
     const labelEmojis = {
@@ -553,7 +556,13 @@ client.on(Events.MessageCreate, async (message) => {
   // ── !prs / !latestpr ──
   else if (command === 'prs' || command === 'latestpr' || command === 'pr') {
     const GITHUB_API = 'https://api.github.com/repos/MRIARC-08/VidyaSetu';
-    const HEADERS = { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'VidyaSetu-Discord-Bot' };
+    const HEADERS = {
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'VidyaSetu-Discord-Bot',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      HEADERS['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
     const PER_PAGE = 10;
     const subCommand = args[0]?.toLowerCase() || '';
     const loading = await message.reply('🔄 Fetching PRs from GitHub...');
