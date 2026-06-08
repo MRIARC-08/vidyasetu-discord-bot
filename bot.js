@@ -223,23 +223,7 @@ client.on(Events.MessageCreate, async (message) => {
     await message.reply({ embeds: [repoEmbed] });
   }
 
-  // ── !issues ──
-  else if (command === 'issues') {
-    const issuesEmbed = new EmbedBuilder()
-      .setTitle('🐛 Open Issues')
-      .setDescription(
-        '**Find something to work on:**\n\n' +
-        '🔗 [All Issues](https://github.com/MRIARC-08/VidyaSetu/issues)\n' +
-        '🌱 [Good First Issues](https://github.com/MRIARC-08/VidyaSetu/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)\n' +
-        '🏷️ [GSSoC Issues](https://github.com/MRIARC-08/VidyaSetu/issues?q=is%3Aissue+is%3Aopen+label%3Agssoc)\n' +
-        '🐛 [Bug Reports](https://github.com/MRIARC-08/VidyaSetu/issues?q=is%3Aissue+is%3Aopen+label%3Abug)\n' +
-        '✨ [Enhancements](https://github.com/MRIARC-08/VidyaSetu/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)\n' +
-        '📝 [Documentation](https://github.com/MRIARC-08/VidyaSetu/issues?q=is%3Aissue+is%3Aopen+label%3Adocumentation)'
-      )
-      .setColor('#57F287');
 
-    await message.reply({ embeds: [issuesEmbed] });
-  }
 
   // ── !contribute ──
   else if (command === 'contribute') {
