@@ -192,36 +192,49 @@ client.once('ready', async () => {
   }
 
   // ── 3b. Restrict legacy project categories to VidyaSetu role ──
-  console.log('\n━━━ Locking Project-Specific Categories ━━━');
-  const projectCategories = ['🏆 GSSOC 2026', '📐 PROJECT'];
-  const projectRoleForLock = roles['🌉 VidyaSetu'];
-  if (projectRoleForLock) {
-    for (const catName of projectCategories) {
+  console.log('\n━━━ Merging Legacy Categories into VIDYASETU Category ━━━');
+  const targetCategory = guild.channels.cache.find(
+    c => c.name === '📐 VIDYASETU' && c.type === ChannelType.GuildCategory
+  );
+  
+  if (targetCategory) {
+    const channelsToMove = [
+      // GSSoC Channels
+      'gssoc-announcements', 'gssoc-leaderboard', 'claim-issues', 'pr-reviews', 'doubts',
+      // Project Info Channels
+      'tech-stack', 'architecture', 'ui-ux-design', 'ai-ml-features', 'deployment'
+    ];
+
+    for (const name of channelsToMove) {
+      // Find channel by name (with or without emoji prefix)
+      const ch = guild.channels.cache.find(c => {
+        const baseName = c.name.replace(/[^a-zA-Z0-9-]/g, '').trim().toLowerCase();
+        return c.name === name || baseName === name;
+      });
+
+      if (ch) {
+        try {
+          await ch.setParent(targetCategory.id);
+          await ch.lockPermissions();
+          console.log(`  📦 Moved & Locked channel: #${ch.name} -> 📐 VIDYASETU`);
+        } catch (err) {
+          console.log(`  ⚠️  Failed to move channel #${name}: ${err.message}`);
+        }
+      }
+    }
+
+    // Now delete GSSOC and PROJECT categories
+    const categoriesToDelete = ['🏆 GSSOC 2026', '📐 PROJECT'];
+    for (const catName of categoriesToDelete) {
       const cat = guild.channels.cache.find(
         c => c.name === catName && c.type === ChannelType.GuildCategory
       );
       if (cat) {
         try {
-          await cat.permissionOverwrites.set([
-            {
-              id: guild.roles.everyone.id,
-              deny: [PermissionFlagsBits.ViewChannel],
-            },
-            {
-              id: projectRoleForLock.id,
-              allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-            },
-          ]);
-          console.log(`  🔒 Locked category to VidyaSetu role: ${catName}`);
-
-          // Sync child channels
-          const children = guild.channels.cache.filter(c => c.parentId === cat.id);
-          for (const child of children.values()) {
-            await child.lockPermissions();
-            console.log(`    🔗 Synced permissions for channel: #${child.name}`);
-          }
+          await cat.delete('Merged categories');
+          console.log(`  🗑️  Deleted empty legacy category: ${catName}`);
         } catch (err) {
-          console.log(`  ⚠️  Failed to lock category ${catName}: ${err.message}`);
+          console.log(`  ⚠️  Failed to delete category ${catName}: ${err.message}`);
         }
       }
     }
@@ -394,13 +407,33 @@ client.once('ready', async () => {
         .setDescription('How the category permissions are organized to keep project channels private.')
         .addFields(
           { name: '🌍 Global Categories', value: '`📢 INFORMATION`, `💬 COMMUNITY`, and `📚 RESOURCES` are visible to all members (role: `@everyone`).' },
-          { name: '🔒 Project Categories', value: '`📐 VIDYASETU`, `🏆 GSSOC 2026`, and `📐 PROJECT` deny view permission to `@everyone` and allow it only for the `🌉 VidyaSetu` project role.' },
-          { name: '🎭 Onboarding Flow', value: 'New members land on `#pick-your-project` and react with `🌉` to assign themselves the project role, immediately unlocking all project categories.' }
+          { name: '🔒 Project Categories', value: '`📐 VIDYASETU` denies view permission to `@everyone` and allows it only for the `🌉 VidyaSetu` project role. This category contains all private developer, design, and GSSoC discussion channels.' },
+          { name: '🎭 Onboarding Flow', value: 'New members land on `#pick-your-project` and react with `🌉` to assign themselves the project role, immediately unlocking the `📐 VIDYASETU` category.' }
         )
         .setColor('#E91E63')
         .setTimestamp();
 
-      await docChannel.send({ embeds: [opsEmbed, archEmbed, permissionsEmbed] });
+      // Embed 4: Feature Guide
+      const featureEmbed = new EmbedBuilder()
+        .setTitle('🤖 Bot Feature Guide & Command Reference')
+        .setDescription('Detailed mapping of what the bot currently manages on the server.')
+        .addFields(
+          { name: '👋 Onboarding & Autoroles', value: 'Automatically assigns the `🌱 New Contributor` role when members join and sends a customized greeting embed in `#welcome`.' },
+          { name: '🎭 Project Opt-In (Reaction Roles)', value: 'Watches `#pick-your-project` reactions. Assigning the `🌉 VidyaSetu` role reveals all GSSoC, tech-stack, and dev tracker channels instantly.' },
+          { name: '📋 GitHub Integration Commands', value: [
+            '`!issues` / `!issues <page_number>` — Browse open issues.',
+            '`!issues search <query>` — Live regex/text search on repo issues.',
+            '`!issues labels` — Dynamic fetch of all repository labels.',
+            '`!issues #42` — View full details of specific issue #42.',
+            '`!issues unassigned` / `!issues assigned <user>` — Quick issue filters.',
+            '`!prs` / `!prs #42` — Track live pull requests and review status.'
+          ].join('\n') },
+          { name: '💬 General Info Commands', value: '`!repo` (git links), `!techstack` (stack guide), `!contribute` (onboarding instructions), `!ping` (ping test), `!stats` (live server members/channels statistics).' }
+        )
+        .setColor('#00B894')
+        .setTimestamp();
+
+      await docChannel.send({ embeds: [opsEmbed, archEmbed, permissionsEmbed, featureEmbed] });
       console.log('  ✅ Documentation embeds sent successfully!');
     } catch (err) {
       console.error('  ❌ Failed to populate bot documentation:', err.message);
